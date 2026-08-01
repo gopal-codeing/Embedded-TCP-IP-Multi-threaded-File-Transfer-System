@@ -7,6 +7,9 @@
 #include <sys/socket.h> //for socket APIs
 #include <sys/types.h>
 #include <string.h>
+#include <dirent.h>
+#include <unistd.h>
+
 
 void start_server(void){  
 	
@@ -21,6 +24,22 @@ void start_server(void){
  
 }
 
+
+// receive file data in chuncks 
+void receive_file(FILE *fp, int clientSocket, long filesize)
+{
+    char buffer[1024];
+    ssize_t bytes;
+   long total  = 0;
+    while ((bytes = recv(clientSocket, buffer, sizeof(buffer), 0)) > 0)
+    {
+        fwrite(buffer, 1, bytes, fp);
+	total += bytes;
+	printf("Progress : %.2f %%\n",(total * 100.0)/filesize);
+    }
+    printf("\ndone receive a data..!");
+}
+
 int create_server_socket(){
 
 	printf("\ncreate a server socket");
@@ -33,17 +52,17 @@ int create_server_socket(){
 
 	servAddr.sin_family = AF_INET;
 	servAddr.sin_port = htons(SERVER_PORT);
-	servAddr.sin_addr.s_addr =  htonl(INADDR_ANY); 
+	servAddr.sin_addr.s_addr =  htonl(INADDR_ANY); // any cleint can connected to the server
 
-	//servAddr.sin_addr.s_addr = inet_addr("10.231.188.109");
+	//servAddr.sin_addr.s_addr = inet_addr("192.168.6.88"); // is am use for self check
 
 	// bind socket to the specified IP and port
 	if(bind(servSockD, (struct sockaddr*)&servAddr,
 				sizeof(servAddr)) < 0){
 		exit(1);
-	}
+	}else{
 	printf("Bind creation successfully...!\n");
-
+        }
 	// listen for connections
 	if(listen(servSockD, 1) < 0){
 		exit(1);
@@ -63,19 +82,43 @@ int create_server_socket(){
 	}
 
 	printf("connected to server");
-	char str[200]={0};
 
-	while (1){
-        memset(str, 0, sizeof(str));
 
-    ssize_t len = recv(clientSocket, str, sizeof(str)-1, 0);
-    str[len] = '\0';
-    printf("Client : %s", str);
-    fgets(str, sizeof(str), stdin);
-    send(clientSocket, str, strlen(str), 0);
+	char filename[100]={0};
+   ssize_t len = recv(clientSocket, filename, sizeof(filename) - 1, 0); // receive file name
+
+if (len <= 0)
+{
+    printf("Filename receive failed\n");
+    close(filename);
+    close(clientSocket);
+    return;
 }
-      
-        close(servSockD);
+
+filename[len] = '\0';
+
+	printf("i am receive this filename %s \n", filename);
+
+	char path[200];
+	sprintf(path,"/home/gopal/Project/Embedded-TCP-Chat-Application/received_files/%s",filename); // this is my server path create
+
+	FILE *file = fopen(path,"wb"); // write data in binary form
+
+	if(file == NULL){
+	  perror("fopen");
+          close(clientSocket);
+	  exit(1);
+	}
+long filesize;
+
+recv(clientSocket, &filesize, sizeof(filesize), 0); // receive the file size
+
+printf("File Size : %ld Bytes\n", filesize);  // print the file size
+
+       receive_file(file,clientSocket, filesize); // call receive file function and pass three parameter file mode clientSocket and file size
+
+	fclose(file);     
+        close(servSockD); // close server socket 
 
 	return servSockD;
 }

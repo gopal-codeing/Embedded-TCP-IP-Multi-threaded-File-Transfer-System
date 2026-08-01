@@ -6,13 +6,33 @@
 #include <sys/socket.h> //for socket APIs
 #include <sys/types.h>
 #include <string.h>
+#include <dirent.h>
+#include <unistd.h>
 
 void start_client(){
    printf("hello working client mode \n");
    int clientfd = connect_server();
    printf("clinet file discripter = %d", clientfd);
+   return;
 }
 
+// send file data in chuncks 
+void send_file(FILE *fp, int sockfd)
+{
+    char buffer[BUFFER_SIZE];
+
+    size_t bytesRead;
+
+    while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, fp)) > 0) 
+    {
+        if (send(sockfd, buffer, bytesRead, 0) == -1)
+        {
+            perror("send");
+            break;
+        }
+    }
+}
+// client said connection
 int connect_server(){
 
   int sockD = socket(AF_INET, SOCK_STREAM, 0);
@@ -25,43 +45,42 @@ int connect_server(){
 
     servAddr.sin_family = AF_INET;
     servAddr.sin_port = htons(SERVER_PORT); // use some unused port number
-    servAddr.sin_addr.s_addr = inet_addr("192.168.68.107");
-
+    servAddr.sin_addr.s_addr = inet_addr("192.168.6.205");
+   
+    // connect the client socket to server socket
     int connectStatus = connect(sockD, (struct sockaddr*)&servAddr,sizeof(servAddr));
 
     if (connectStatus == -1) {
         printf("Error...\n");
-    }
-  
+    }else{
      printf("Client connection Succfully create \n");
-    
-       char str[200]={0};
-     while (1)
-{
-    printf("Client : ");
-    fgets(str, sizeof(str), stdin);
-     
-    if(strncmp(str,"exit",4) == 0) {
-        printf("Server disconnected\n");
-        break;
     }
-    send(sockD, str, strlen(str), 0);
-    memset(str, 0, sizeof(str));
-    ssize_t len = recv(sockD, str, sizeof(str)-1, 0);
-   
-   /* if(strcmp(str,"exit") == 0) {
-        printf("Server disconnected\n");
-        break;
-    }*/
-    str[len] = '\0';
 
-    printf("Server : %s", str);
+FILE *ptr = fopen("send_files/demo.txt", "rb");  //  mode stands for Read Binary
+
+if (ptr == NULL)
+{
+    perror("fopen");
+    close(sockD);
+    return -1;
 }
+char filename[] = "demo.txt"; // create a file same sending file name 
+
+send(sockD, filename, strlen(filename) + 1, 0); // Fast send a file name
+sleep(1);
+fseek(ptr, 0, SEEK_END); // Move to the end
+long filesize = ftell(ptr); // ftell returns the current byte position
+
+rewind(ptr); //resets the file pointer back to the very beginning of the file. 
+printf("\nclient side file size :%ld\n",filesize); 
+send(sockD, &filesize, sizeof(filesize), 0); // send a file size
+
+send_file(ptr, sockD); // send a two perameter ptr file pointer and  sockect
   close(sockD);
     return 0;
 }
 
-
+// main function staring point
 int main(int argc, char const* argv[])
 {
        printf("====================================\n");	
