@@ -33,7 +33,9 @@ int create_server_socket(){
 
 	servAddr.sin_family = AF_INET;
 	servAddr.sin_port = htons(SERVER_PORT);
-	servAddr.sin_addr.s_addr = inet_addr("10.231.188.109");
+	servAddr.sin_addr.s_addr =  htonl(INADDR_ANY); 
+
+	//servAddr.sin_addr.s_addr = inet_addr("10.231.188.109");
 
 	// bind socket to the specified IP and port
 	if(bind(servSockD, (struct sockaddr*)&servAddr,

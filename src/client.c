@@ -25,7 +25,7 @@ int connect_server(){
 
     servAddr.sin_family = AF_INET;
     servAddr.sin_port = htons(SERVER_PORT); // use some unused port number
-    servAddr.sin_addr.s_addr = inet_addr("10.231.188.109");
+    servAddr.sin_addr.s_addr = inet_addr("192.168.68.107");
 
     int connectStatus = connect(sockD, (struct sockaddr*)&servAddr,sizeof(servAddr));
 
