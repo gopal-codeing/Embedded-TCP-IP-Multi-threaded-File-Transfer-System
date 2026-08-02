@@ -13,17 +13,17 @@ void start_client(){
    printf("hello working client mode \n");
    int clientfd = connect_server();
    printf("clinet file discripter = %d", clientfd);
-   return;
+  return;
 }
 
-// send file data in chuncks 
+// send file data in chuncks
 void send_file(FILE *fp, int sockfd)
 {
     char buffer[BUFFER_SIZE];
 
     size_t bytesRead;
 
-    while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, fp)) > 0) 
+    while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, fp)) > 0)
     {
         if (send(sockfd, buffer, bytesRead, 0) == -1)
         {
@@ -31,7 +31,9 @@ void send_file(FILE *fp, int sockfd)
             break;
         }
     }
+    return;
 }
+
 // client said connection
 int connect_server(){
 
@@ -45,42 +47,69 @@ int connect_server(){
 
     servAddr.sin_family = AF_INET;
     servAddr.sin_port = htons(SERVER_PORT); // use some unused port number
-    servAddr.sin_addr.s_addr = inet_addr("192.168.6.205");
-   
-    // connect the client socket to server socket
+    servAddr.sin_addr.s_addr = inet_addr("10.229.123.109");
+
     int connectStatus = connect(sockD, (struct sockaddr*)&servAddr,sizeof(servAddr));
 
     if (connectStatus == -1) {
         printf("Error...\n");
-    }else{
-     printf("Client connection Succfully create \n");
     }
+  
+     printf("Client connection Succfully create \n");
 
-FILE *ptr = fopen("send_files/demo.txt", "rb");  //  mode stands for Read Binary
 
-if (ptr == NULL)
-{
-    perror("fopen");
-    close(sockD);
-    return -1;
+
+//---------- this code is send folder to subfile-------------
+DIR *dir = opendir("send_files");//  function is used to open a directory stream so you can read its files and sub-directories. 
+
+if(dir == NULL){   // check folder is Empty
+ perror("opendir");
+ return;
 }
-char filename[] = "demo.txt"; // create a file same sending file name 
 
-send(sockD, filename, strlen(filename) + 1, 0); // Fast send a file name
-sleep(1);
-fseek(ptr, 0, SEEK_END); // Move to the end
-long filesize = ftell(ptr); // ftell returns the current byte position
+struct dirent *entry;  // create structer  represents a single directory entry
 
-rewind(ptr); //resets the file pointer back to the very beginning of the file. 
-printf("\nclient side file size :%ld\n",filesize); 
-send(sockD, &filesize, sizeof(filesize), 0); // send a file size
+while((entry = readdir(dir)) != NULL){  // read folder to sub files
+  if(strcmp(entry->d_name,".")==0 || strcmp(entry->d_name,"..")==0){
+    continue;
+}
+char filepath[512];
 
-send_file(ptr, sockD); // send a two perameter ptr file pointer and  sockect
+snprintf(filepath, sizeof(filepath),"send_files/%s", entry->d_name); // createa file path with name
+printf("Opening : %s\n", filepath); // print file path
+				    
+char filename[200];
+strcpy(filename, entry->d_name);  // copy file name 
+send(sockD, filename , strlen(filename) + 1, 0); // send a file name
+
+FILE *fp = fopen(filepath, "rb");  // oper file for binary data read form
+
+if(fp == NULL){  
+  perror("fopen");
+  continue;
+}
+
+sleep(1); // wait for 1 second
+
+fseek(fp, 0, SEEK_END); // Move to the end
+long filesize = ftell(fp); // ftell returns the current byte position
+rewind(fp);//resets the file pointer back to the very beginning of the file. 
+
+printf("\nclient side file size :%ld\n",filesize); // print file size
+send(sockD, &filesize, sizeof(filesize), 0);  // send file size to server 
+send_file(fp, sockD); 
+
+fclose(fp); // close file 
+
+  printf("%s\n", entry->d_name); // print file name
+}
+
+  closedir(dir);
   close(sockD);
-    return 0;
+  return 0;
 }
 
-// main function staring point
+
 int main(int argc, char const* argv[])
 {
        printf("====================================\n");	
