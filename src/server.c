@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <string.h>
 #include <dirent.h>
+#include <pthread.h>
+#include <unistd.h>
 
 void start_server(void){  
 	
@@ -21,84 +23,86 @@ void start_server(void){
      return;
  
 }
-#if 0
-void receive_file(FILE *fp, int clientSocket, long filesize)
-{
-    char buffer[1024];
-    ssize_t bytes;
-   long total  = 0;
-    while ((bytes = recv(clientSocket, buffer, sizeof(buffer), 0)) > 0)
-    {
-        fwrite(buffer, 1, bytes, fp);
-	total += bytes;
-	printf("Progress : %.2f %%\n",(total * 100.0)/filesize);
-    }
-}
-#endif
 
-void receive_file(FILE *fp, int clientSocket, long filesize)
+void receive_file(FILE *fp, int clientSocket,  long filesize)
 {
     char buffer[1024];
-    long total = 0;
+    long long total = 0;
 
     while (total < filesize)
     {
-        ssize_t bytes = recv(clientSocket, buffer, sizeof(buffer), 0);
+        size_t remain = filesize - total;
+
+        size_t chunk = remain > sizeof(buffer) ? sizeof(buffer) :remain;
+
+        ssize_t bytes = recv(clientSocket, buffer, chunk, 0);
 
         if (bytes <= 0)
             break;
 
         fwrite(buffer, 1, bytes, fp);
-
         total += bytes;
-      	printf("Progress : %.2f %%\n",(total * 100.0)/filesize);
-
+        printf("\rDownloading : %.2f%%",(total * 100.0) / filesize);
+        fflush(stdout);
     }
 }
 
 void accept_client(int clientSocket){
-    //----- server will receive all file------------------
-            printf("connected to server");
+    //----- server will recevice all file------------------
+            printf("\nconnected to server\n");
 
 while(1){
 
-        char filename[100]={0};
-   ssize_t len = recv(clientSocket, filename, sizeof(filename) - 1, 0); /// receive file name
-
-if (len <= 0)
-{
-    printf("Filename receive failed\n");
-    close(filename);
+   char filename[100]={0};
+   ssize_t len = recv(clientSocket, filename, sizeof(filename) - 1, 0);
+ 
+if (len <= 0){
+    printf("\n All file are Downloads...\n");
+   // fclose(filename);
     close(clientSocket);
-    return;
+    break;
 }
 
 filename[len] = '\0';
+printf("\ni am receve this filename %s \n", filename);
 
-        printf("i am receive this filename %s \n", filename);  // print a filename
 
         char path[200];
-        snprintf(path,sizeof(path),"/home/gopal/Project/Embedded-TCP-Chat-Application/received_files/%s",filename); // this is my server path create
+        snprintf(path,sizeof(path),"/home/gopal/Project/Embedded-TCP-Chat-Application/received_files/%s",filename);
 
-        FILE *file = fopen(path,"wb"); //  write data in binary form
+        FILE *file = fopen(path,"wb");
 
         if(file == NULL){
           perror("fopen");
-      close(clientSocket);
+          close(clientSocket);
           exit(1);
         }
 
        long filesize;
-       recv(clientSocket, &filesize, sizeof(filesize), 0); // receive the file size
-       printf("File Size : %ld Bytes\n", filesize); // print file size
-
+       recv(clientSocket, &filesize, sizeof(filesize), 0);
+       printf("File Size : %ld Bytes\n", filesize);
        receive_file(file,clientSocket, filesize); // recive the data into chunck form 
 
-         fclose(file);  
+        fclose(file);
 	}
-        close(clientSocket); // close server socket
+        close(clientSocket);
  
 return;
+}
+
+void *client_handler(void *arg)
+{
+    int clientSocket = *(int *)arg;
+
+    free(arg);
+
+    printf("Client Connected : %d\n", clientSocket);
+
+    accept_client(clientSocket);  
+
+    close(clientSocket);
+
+    return NULL;
 }
 
 
@@ -115,17 +119,17 @@ int create_server_socket(){
 
 	servAddr.sin_family = AF_INET;
 	servAddr.sin_port = htons(SERVER_PORT);
-        servAddr.sin_addr.s_addr =  htonl(INADDR_ANY); // any cleint can connected to the server
-	
+	//servAddr.sin_addr.s_addr = inet_addr("192.168.6.88");
+	servAddr.sin_addr.s_addr = INADDR_ANY;
+
 	// bind socket to the specified IP and port
-	if(bind(servSockD, (struct sockaddr*)&servAddr,
-				sizeof(servAddr)) < 0){
+	if(bind(servSockD, (struct sockaddr*)&servAddr,sizeof(servAddr)) < 0){
 		exit(1);
 	}
 	printf("Bind creation successfully...!\n");
 
 	// listen for connections
-	if(listen(servSockD, 1) < 0){
+	if(listen(servSockD, 10) < 0){
 		exit(1);
 	}
 
@@ -134,14 +138,28 @@ int create_server_socket(){
 	printf("Port     : %d\n", ntohs(servAddr.sin_port));
 	printf("Address  : %u\n", servAddr.sin_addr.s_addr);
 
-	// integer to hold client socket.
+while(1){
+      
+       	int *clientSocket = malloc(sizeof(int));
+	*clientSocket = accept(servSockD, NULL, NULL);
+        if(*clientSocket < 0){
+                printf("client Socket not accepted");
+                exit(1);
+        }
+    pthread_t thread_id;
+      if (pthread_create(&thread_id, NULL,client_handler,clientSocket) != 0)
+    {
+        perror("pthread_create");
 
-	int clientSocket = accept(servSockD, NULL, NULL);
-	if(clientSocket < 0){
-		printf("client clientSocket not accepted");
-		exit(1);
-	}
-accept_client(clientSocket);
+        close(*clientSocket);
+
+        free(clientSocket);
+
+        continue;
+    }
+
+
+}
 return 0;
 }
 

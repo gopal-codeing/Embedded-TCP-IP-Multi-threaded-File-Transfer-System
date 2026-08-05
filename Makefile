@@ -2,8 +2,10 @@
 	CC = gcc
 
 # Compiler Flags
-CFLAGS = -Wall -Iinclude
+CFLAGS = -Wall -Iinclude -pthread
 
+# Linker Flags
+LDFLAGS = -pthread
 
 # Server
 SERVER_TARGET = bin/server
@@ -20,14 +22,14 @@ all: $(SERVER_TARGET) $(CLIENT_TARGET)
 
 # Server Build
 $(SERVER_TARGET): $(SERVER_OBJ)
-	$(CC) $(SERVER_OBJ) -o $(SERVER_TARGET)
+	$(CC) $(SERVER_OBJ) -o $(SERVER_TARGET) $(LDFLAGS)
 
 $(SERVER_OBJ): $(SERVER_SRC)
 	$(CC) $(CFLAGS) -c $(SERVER_SRC) -o $(SERVER_OBJ)
 
 # Client Build
 $(CLIENT_TARGET): $(CLIENT_OBJ)
-	$(CC) $(CLIENT_OBJ) -o $(CLIENT_TARGET)
+	$(CC) $(CLIENT_OBJ) -o $(CLIENT_TARGET) $(LDFLAGS)
 
 $(CLIENT_OBJ): $(CLIENT_SRC)
 	$(CC) $(CFLAGS) -c $(CLIENT_SRC) -o $(CLIENT_OBJ)
