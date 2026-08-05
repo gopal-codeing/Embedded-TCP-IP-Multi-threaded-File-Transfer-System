@@ -1,170 +1,111 @@
-# 🚀 Embedded TCP/IP Multi-threaded File Transfer System
+# Embedded TCP/IP Multi-threaded File Transfer System
 
-A Linux-based TCP/IP File Transfer System developed in **C** using **POSIX Sockets** and **Pthreads**. The project supports reliable single-file and multi-file transfer, concurrent client handling, transfer progress monitoring, and SHA-256 checksum verification.
+This project is developed in C on Linux using POSIX sockets.
 
----
+Initially I started with a simple TCP server and client connection. After that I gradually added chat functionality, file transfer, multiple file transfer and finally multi-threading using pthreads.
 
-## 📌 Features
-
-- ✅ TCP Client-Server Communication
-- ✅ Two-way Chat Application
-- ✅ Single File Transfer
-- ✅ Multi-file Transfer
-- ✅ Multi-threaded Server (Pthreads)
-- ✅ Filename Transfer
-- ✅ File Size Transfer
-- ✅ Transfer Progress (%)
-- ✅ Automatic File Creation
-- ✅ Directory Reading (`opendir()`, `readdir()`)
-- ✅ SHA-256 Checksum Verification
-- ✅ Modular Project Structure
-- ✅ Makefile Build System
+The purpose of this project was to learn Linux socket programming and understand how client-server communication works.
 
 ---
 
-## 🛠 Technologies Used
+## Features
 
-- C Programming
+- TCP Server and Client
+- Two-way Chat
+- Single File Transfer
+- Multiple File Transfer
+- Multi-threaded Server (pthread)
+- File Name Transfer
+- File Size Transfer
+- File Transfer Progress
+- Automatic File Creation on Server
+- Directory Reading using opendir() and readdir()
+- SHA-256 Checksum Verification
+- Makefile Support
+
+---
+
+## Technologies
+
+- C
 - Linux
-- POSIX Sockets
+- POSIX Socket
 - TCP/IP
-- POSIX Threads (pthread)
-- OpenSSL (SHA-256)
-- Makefile
+- pthread
+- OpenSSL
 - GCC
-- File I/O
+- Makefile
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
-Embedded-TCP-FileTransfer/
-│
-├── include/
-│   ├── common.h
-│   ├── server.h
-│   ├── client.h
-│   ├── socket_utils.h
-│   └── logger.h
-│
-├── src/
-│   ├── server.c
-│   ├── client.c
-│   └── main.c
-│
-├── send_files/
-│
-├── received_files/
-│
-├── logs/
-│
-├── obj/
-│
-├── bin/
-│
-├── Makefile
-│
-└── README.md
+Embedded-TCP-FileTransfer
+
+include/
+src/
+bin/
+obj/
+send_files/
+received_files/
+logs/
+
+Makefile
+README.md
 ```
 
 ---
 
-# ⚙️ Build
+## Build
 
-Compile the project
-
-```bash
+```
 make
 ```
 
-Clean object files
+Clean
 
-```bash
+```
 make clean
 ```
 
 ---
 
-# ▶️ Run Server
+## Run
 
-```bash
+Start Server
+
+```
 ./bin/server
 ```
 
-Output
+Start Client
 
 ```
-Socket Created
-Bind Successful
-Listening on Port 9000
-
-Waiting for Clients...
-```
-
----
-
-# ▶️ Run Client
-
-```bash
 ./bin/client
 ```
 
-Output
+---
 
-```
-Connected to Server
-```
+## How it Works
+
+Client connects to the server using TCP socket.
+
+Before sending a file, the client sends
+
+- Filename
+- File Size
+- SHA-256 Checksum
+
+Then the actual file data is transferred.
+
+The server creates a new file, receives all data and verifies the checksum.
 
 ---
 
-# 📁 File Transfer Workflow
+## Multiple File Transfer
 
-```
-Client
-
-│
-
-├── Send Filename
-
-│
-
-├── Send File Size
-
-│
-
-├── Send SHA-256 Checksum
-
-│
-
-└── Send File Data
-
-        │
-
-        ▼
-
-Server
-
-│
-
-├── Receive Filename
-
-├── Create File
-
-├── Receive File Size
-
-├── Receive File Data
-
-├── Calculate SHA-256
-
-└── Verify File Integrity
-```
-
----
-
-# 📁 Multi-file Transfer
-
-Client automatically reads all files from
+The client reads all files from
 
 ```
 send_files/
@@ -172,13 +113,12 @@ send_files/
 
 using
 
-```c
+```
 opendir()
-
 readdir()
 ```
 
-and transfers them one by one to the server.
+and sends every file one by one.
 
 Received files are stored inside
 
@@ -188,110 +128,25 @@ received_files/
 
 ---
 
-# 🧵 Multi-threaded Architecture
+## Multi-threading
+
+The server creates one thread for every connected client.
 
 ```
-                Server
+Client 1  ---> Thread 1
 
-               socket()
+Client 2  ---> Thread 2
 
-                   │
-
-                bind()
-
-                   │
-
-               listen()
-
-                   │
-
-             while(1)
-
-                   │
-
-               accept()
-
-                   │
-
-          pthread_create()
-
-        ┌─────────┼─────────┐
-        │         │         │
-    Client 1   Client 2   Client 3
-        │         │         │
-   Receive    Receive   Receive
-     Files      Files      Files
+Client 3  ---> Thread 3
 ```
 
-Each client is handled by a dedicated thread allowing multiple clients to transfer files concurrently.
+This allows multiple clients to transfer files at the same time.
 
 ---
 
-# 🔒 File Integrity Verification
+## APIs Used
 
-The project uses **SHA-256** checksum to verify that the received file is identical to the transmitted file.
-
-```
-Client SHA256
-
-↓
-
-Send Checksum
-
-↓
-
-Server Generates SHA256
-
-↓
-
-Compare
-
-↓
-
-SUCCESS / FAILED
-```
-
----
-
-# 📈 Project Development Timeline
-
-### Version 1.0
-
-- TCP Server
-- TCP Client
-
-### Version 2.0
-
-- Two-way Chat Application
-
-### Version 3.0
-
-- Single File Transfer
-
-### Version 4.0
-
-- Filename Transfer
-- File Size Transfer
-- Progress Indicator
-
-### Version 5.0
-
-- Multi-file Transfer
-- Directory Reading (`opendir()`, `readdir()`)
-
-### Version 6.0
-
-- Multi-threaded Server using POSIX Threads
-
-### Version 7.0
-
-- SHA-256 Checksum Verification
-
----
-
-# 💻 Linux APIs Used
-
-### Networking
+Networking
 
 - socket()
 - bind()
@@ -301,69 +156,50 @@ SUCCESS / FAILED
 - send()
 - recv()
 
-### Threading
+Thread
 
 - pthread_create()
 - pthread_detach()
-- pthread_exit()
 
-### File Handling
+Directory
+
+- opendir()
+- readdir()
+
+File
 
 - fopen()
 - fread()
 - fwrite()
 - fclose()
 
-### Directory Handling
-
-- opendir()
-- readdir()
-- closedir()
-
-### Checksum
-
-- SHA256_Init()
-- SHA256_Update()
-- SHA256_Final()
-
 ---
 
-# 🎯 Learning Outcomes
+## What I Learned
 
-- Linux System Programming
+While building this project I learned
+
 - TCP/IP Socket Programming
-- POSIX Thread Programming
-- File System Programming
+- Client-Server Communication
+- POSIX Threads
+- File Handling
 - Multi-threading
-- Client-Server Architecture
-- Custom File Transfer Protocol
-- SHA-256 File Integrity Verification
-- Modular Software Design
-- Makefile Build Automation
+- Linux APIs
+- Makefile
+- SHA-256 Checksum Verification
 
 ---
 
-# 🚀 Future Improvements
+## Future Work
 
-- GitHub Actions CI/CD Pipeline
-- Thread-safe Logging using Mutex
-- File Compression
-- Resume Interrupted Transfer
-- SSL/TLS Secure File Transfer
-- Transfer Speed Monitoring
-- Configuration File Support
-- Epoll-based High Performance Server
+- GitHub Actions CI
+- Better Logging
+- SSL/TLS Support
+- Resume File Transfer
+- Transfer Speed Calculation
 
 ---
 
-# 👨‍💻 Author
+Developed by
 
-**Gopal**
-
-Embedded Software Engineer
-
-Linux | C | TCP/IP | POSIX Sockets | Embedded Linux | Multithreading
-
----
-
-## ⭐ If you found this project useful, consider giving it a Star!
+Gopal
